@@ -1,0 +1,33 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String         @id @default(cuid())
+  username      String
+  email         String
+  discriminator String
+  hash          String
+  relationships Relationship[]
+  guilds        Guild[]
+}
+
+model Relationship {
+  user User   @relation(fields: [id], references: [id], onDelete: Cascade)
+  id   String @id @default(cuid())
+}
+
+model Guild {
+  id       String @id @default(cuid())
+  name     String
+  owner_id String
+  owner    User   @relation(fields: [owner_id], references: [id], onDelete: Cascade)
+}
