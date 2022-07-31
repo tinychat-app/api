@@ -1,13 +1,8 @@
 import argon2 from 'argon2';
-import {
-    createHttpError,
-    defaultEndpointsFactory,
-    withMeta,
-    z,
-} from 'express-zod-api';
+import { createHttpError, defaultEndpointsFactory, withMeta, z } from 'express-zod-api';
 import jwt from 'jsonwebtoken';
 
-import { AuthenticatedOptions, prisma, snowflake, verifyAuthMiddleware } from '../common';
+import { AuthenticatedOptions, client, prisma, snowflake, verifyAuthMiddleware } from '../common';
 import { UserZod } from '../models';
 
 export const createUserEndpoint = defaultEndpointsFactory.build({
@@ -64,16 +59,28 @@ export const patchUsersMe = defaultEndpointsFactory.addMiddleware(verifyAuthMidd
         password: 'youshallnotpass',
     }),
     output: UserZod,
-    handler: async ({ input: { username, password, email }, logger, options }) => {
+    handler: async ({ input: { username, password, email }, options }) => {
         const { user } = options as AuthenticatedOptions;
         const updatedUser = await prisma.user.update({
             where: { id: user.id },
             data: {
-                username: username || user.username,
-                email: email || user.email,
-                hash: password ? await argon2.hash(password, { type: argon2.argon2id }) : user.hash,
+                username: username !== undefined ? username : user.username,
+                email: email !== undefined ? email : user.email,
+                hash: password !== undefined ? await argon2.hash(password, { type: argon2.argon2id }) : user.hash,
             },
         });
+        if (password !== undefined) {
+            await client.publish(
+                'gateway',
+                JSON.stringify({
+                    type: 'internal',
+                    data: {
+                        type: 'disconnect',
+                        id: user.id,
+                    },
+                })
+            );
+        }
         return {
             username: updatedUser.username,
             email: updatedUser.email,
@@ -88,8 +95,8 @@ export const getUsersMe = defaultEndpointsFactory.addMiddleware(verifyAuthMiddle
     description: 'Get your user info',
     input: z.object({}),
     output: UserZod,
-    handler: async ({ input, options, logger }) => {
-        let { user } = options as AuthenticatedOptions;
+    handler: async ({ options }) => {
+        const { user } = options as AuthenticatedOptions;
         return {
             username: user.username,
             email: user.email,
@@ -99,21 +106,20 @@ export const getUsersMe = defaultEndpointsFactory.addMiddleware(verifyAuthMiddle
     },
 });
 
-
 export const deleteUserEndpoint = defaultEndpointsFactory.addMiddleware(verifyAuthMiddleware).build({
     method: 'delete',
     description: 'Delete your user',
     input: z.object({}),
-    output: z.object({message: z.string().optional()}),
-    handler: async ({ input, options, logger }) => {
+    output: z.object({ message: z.string().optional() }),
+    handler: async ({ options, logger }) => {
         const { user } = options as AuthenticatedOptions;
         await prisma.user.delete({ where: { id: user.id } });
         logger.info(`Deleted user '${user.username}' with id '${user.id}'`);
-        if ( user.username === 'ooliver1') {
-            return {message: "sucessfully forgor"}
+        if (user.username === 'ooliver1') {
+            return { message: 'sucessfully forgor' };
         }
         return {};
-    }
+    },
 });
 
 export const getUserTokenEndpoint = defaultEndpointsFactory.build({
@@ -135,7 +141,7 @@ export const getUserTokenEndpoint = defaultEndpointsFactory.build({
     ).example({
         token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjkxNTQyMTM1MTkwNzMyOCIsImlhdCI6MTY1ODgzOTA1NX0.Vu5MqJ_F_2rAHbcICvOGqxXoaqYiFYvRb9w0c7vHIlc',
     }),
-    handler: async ({ input: { password, email }, options, logger }) => {
+    handler: async ({ input: { password, email }, logger }) => {
         const user = await prisma.user.findFirst({ where: { email: email } });
         if (!user) {
             logger.debug(`Rejecting GET /users/me/token because '${email}' was not found`);

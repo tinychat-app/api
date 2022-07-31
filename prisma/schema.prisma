@@ -26,8 +26,16 @@ model Relationship {
 }
 
 model Guild {
-  id       String @id @default(cuid())
+  id       String         @id @default(cuid())
   name     String
   owner_id String
-  owner    User   @relation(fields: [owner_id], references: [id], onDelete: Cascade)
+  owner    User           @relation(fields: [owner_id], references: [id], onDelete: Cascade)
+  channels GuildChannel[]
+}
+
+model GuildChannel {
+  id       String @id @default(cuid())
+  name     String
+  guild_id String
+  guild    Guild  @relation(fields: [guild_id], references: [id], onDelete: Cascade)
 }

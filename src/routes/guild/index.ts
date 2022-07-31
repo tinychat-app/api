@@ -1,7 +1,7 @@
 import { createHttpError, defaultEndpointsFactory, withMeta, z } from 'express-zod-api';
 
-import { AuthenticatedOptions, prisma, snowflake, verifyAuthMiddleware } from '../common';
-import { GuildZod } from '../models';
+import { AuthenticatedOptions, client, prisma, snowflake, verifyAuthMiddleware } from '../../common';
+import { GuildZod } from '../../models';
 
 export const createGuild = defaultEndpointsFactory.addMiddleware(verifyAuthMiddleware).build({
     method: 'post',
@@ -13,6 +13,7 @@ export const createGuild = defaultEndpointsFactory.addMiddleware(verifyAuthMiddl
     ).example({ name: 'My Guild' }),
     output: GuildZod,
     handler: async ({ input: { name }, options, logger }) => {
+        console.log(options);
         const { user } = options as AuthenticatedOptions;
         const guild = await prisma.guild.create({
             data: {
@@ -22,6 +23,19 @@ export const createGuild = defaultEndpointsFactory.addMiddleware(verifyAuthMiddl
             },
         });
         logger.debug(`Created guild '${name}' for user '${user.username}'`);
+
+        await client.publish(
+            'gateway',
+            JSON.stringify({
+                type: 'dispatch',
+                data: {
+                    type: 'guild_create',
+                    id: user.id,
+                    guild: guild,
+                },
+            })
+        );
+
         return {
             id: guild.id,
             name: guild.name,
@@ -34,7 +48,6 @@ export const createGuild = defaultEndpointsFactory.addMiddleware(verifyAuthMiddl
     },
 });
 
-
 export const getGuild = defaultEndpointsFactory.addMiddleware(verifyAuthMiddleware).build({
     method: 'get',
     description: 'Get guild info',
@@ -46,7 +59,7 @@ export const getGuild = defaultEndpointsFactory.addMiddleware(verifyAuthMiddlewa
     output: GuildZod,
     handler: async ({ input: { id }, options, logger }) => {
         const { user } = options as AuthenticatedOptions;
-        
+
         const guild = await prisma.guild.findFirst({
             where: { id },
         });
@@ -59,7 +72,6 @@ export const getGuild = defaultEndpointsFactory.addMiddleware(verifyAuthMiddlewa
         const owner = await prisma.user.findFirstOrThrow({
             where: { id: guild.owner_id },
         });
-        
 
         logger.silly(`Got guild '${guild.name}' for user '${user.username}'`);
         return {
@@ -89,13 +101,12 @@ export const updateGuild = defaultEndpointsFactory.addMiddleware(verifyAuthMiddl
 
         const guild = await prisma.guild.findFirst({
             where: { id },
-        })
+        });
 
         if (!guild) {
             logger.silly(`'${user.id}' tried to PATCH /guild/'${id}' but it does not exist`);
             throw createHttpError(404, 'Guild not found');
         }
-
 
         if (guild.owner_id !== user.id) {
             logger.silly(`'${user.id}' tried to PATCH /guild/'${id}' but it is not their guild`);
@@ -109,10 +120,9 @@ export const updateGuild = defaultEndpointsFactory.addMiddleware(verifyAuthMiddl
         const updatedGuild = await prisma.guild.update({
             where: { id },
             data: {
-                name: name || guild.name,
+                name: name !== undefined ? name : guild.name,
             },
         });
-
 
         return {
             id: updatedGuild.id,
@@ -122,13 +132,9 @@ export const updateGuild = defaultEndpointsFactory.addMiddleware(verifyAuthMiddl
                 username: owner.username,
                 discriminator: owner.discriminator,
             },
-        }
-    
-    
-    }
-
+        };
+    },
 });
-
 
 export const deleteGuild = defaultEndpointsFactory.addMiddleware(verifyAuthMiddleware).build({
     method: 'delete',
@@ -144,7 +150,7 @@ export const deleteGuild = defaultEndpointsFactory.addMiddleware(verifyAuthMiddl
 
         const guild = await prisma.guild.findFirst({
             where: { id },
-        })
+        });
 
         if (!guild) {
             logger.silly(`'${user.id}' tried to DELETE /guild/'${id}' but it does not exist`);
@@ -154,7 +160,6 @@ export const deleteGuild = defaultEndpointsFactory.addMiddleware(verifyAuthMiddl
             logger.silly(`'${user.id}' tried to DELETE /guild/'${id}' but it is not their guild`);
             throw createHttpError(403, 'You are not the owner of this guild');
         }
-
 
         await prisma.guild.delete({
             where: { id },
@@ -170,5 +175,5 @@ export const deleteGuild = defaultEndpointsFactory.addMiddleware(verifyAuthMiddl
                 discriminator: user.discriminator,
             },
         };
-    }
+    },
 });
