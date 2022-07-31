@@ -16,7 +16,7 @@ import {
 
 const config = createConfig({
     server: {
-        listen: 3001,
+        listen: 3000,
     },
     cors: true,
     logger: {
@@ -60,9 +60,9 @@ const jsonSpec = new OpenAPI({
     config,
     version: '0.1.0',
     title: 'tinychat API',
-    serverUrl: 'http://localhost:3001',
+    serverUrl: 'http://localhost:3000',
 }).getSpecAsJson();
-writeFileSync(path.join(__dirname, '..', 'public/openapi.json'), jsonSpec);
+writeFileSync(path.join(__dirname, '..', 'public/openapi.json'), jsonSpec, { flag: 'w' });
 
 const main = async () => {
     await prisma.$connect();

@@ -1,0 +1,8 @@
+*
+!LICENSE
+!package.json
+!yarn.lock
+!src/
+!prisma/
+!public/
+!tsconfig.json
