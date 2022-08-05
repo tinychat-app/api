@@ -1,5 +1,4 @@
-import { createHttpError, defaultEndpointsFactory, withMeta } from 'express-zod-api';
-import { z } from 'zod';
+import { createHttpError, defaultEndpointsFactory, withMeta, z } from 'express-zod-api';
 
 import { AuthenticatedOptions, client, snowflake, verifyAuthMiddleware } from '../../common';
 import { Channel } from '../../models/channel';
@@ -48,4 +47,28 @@ export const createGuildChannel = defaultEndpointsFactory.addMiddleware(verifyAu
 
         return channel;
     },
+});
+
+export const getGuildChannels = defaultEndpointsFactory.addMiddleware(verifyAuthMiddleware).build({
+    method: 'get',
+    description: 'Get all channels in a guild',
+    input: z.object({
+        id: z.string().min(1),
+    }),
+    output: z.object({channels: z.object({
+        id: z.string().min(1),
+        name: z.string().min(1),
+    }).array()}),
+    handler: async ({ input: { id }, options }) => {
+        const { user } = options as AuthenticatedOptions;
+        const guild = await Guild.findOne({
+            id: id,
+            owner: user.id,
+        })
+        if (!guild) {
+            throw createHttpError(404, 'Guild not found');
+        }
+
+        return {channels: guild.channels as {id: string, name: string}[]};
+    }
 });
