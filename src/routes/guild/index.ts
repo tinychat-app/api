@@ -64,12 +64,6 @@ export const getGuild = defaultEndpointsFactory.addMiddleware(verifyAuthMiddlewa
             throw createHttpError(404, 'Guild not found');
         }
 
-        const owner = await User.findOne( { id: guild.owner },
-        );
-        if (!owner) {
-            logger.error(`'${user.id}' tried to GET /guild/'${id}' but the owner does not exist`);
-            throw createHttpError(500, 'Internal server error');
-        }
 
         logger.silly(`Got guild '${guild.name}' for user '${user.id}'`);
         return {
