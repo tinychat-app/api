@@ -8,6 +8,10 @@ import { User, UserSchema, UserType } from './models/user';
 export const tinyEpoch = new Date('2022-07-24T00:00:00.000Z');
 export const snowflake = new Snowflake(tinyEpoch);
 
+let url = 'redis://localhost:6379'
+if (process.env.NODE_ENV === 'production') {
+    url = 'redis://keydb:6379'
+}
 
 
 export const verifyToken = async (token: string): Promise<{ user: UserType } | undefined> => {
@@ -56,6 +60,6 @@ export interface AuthenticatedOptions {
 }
 
 
-export const client = createClient();
+export const client = createClient({url});
 export const producer = client.duplicate();
 export const consumer = client.duplicate();
