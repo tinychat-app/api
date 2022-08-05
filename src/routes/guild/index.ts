@@ -1,7 +1,8 @@
 import { createHttpError, defaultEndpointsFactory, withMeta, z } from 'express-zod-api';
 
-import { AuthenticatedOptions, client, prisma, snowflake, verifyAuthMiddleware } from '../../common';
-import { GuildZod } from '../../models';
+import { AuthenticatedOptions, client, snowflake, verifyAuthMiddleware } from '../../common';
+import { Guild, GuildZod } from '../../models/guild';
+import { User } from '../../models/user';
 
 export const createGuild = defaultEndpointsFactory.addMiddleware(verifyAuthMiddleware).build({
     method: 'post',
@@ -13,15 +14,13 @@ export const createGuild = defaultEndpointsFactory.addMiddleware(verifyAuthMiddl
     ).example({ name: 'My Guild' }),
     output: GuildZod,
     handler: async ({ input: { name }, options, logger }) => {
-        console.log(options);
         const { user } = options as AuthenticatedOptions;
-        const guild = await prisma.guild.create({
-            data: {
+        const guild = await Guild.create({
                 id: snowflake.generate().toString(),
                 name,
-                owner_id: user.id,
+                owner: user.id,
             },
-        });
+        );
         logger.debug(`Created guild '${name}' for user '${user.username}'`);
 
         await client.publish(
@@ -39,11 +38,7 @@ export const createGuild = defaultEndpointsFactory.addMiddleware(verifyAuthMiddl
         return {
             id: guild.id,
             name: guild.name,
-            owner: {
-                id: guild.owner_id,
-                username: user.username,
-                discriminator: user.discriminator,
-            },
+            owner_id: guild.owner,
         };
     },
 });
@@ -60,28 +55,26 @@ export const getGuild = defaultEndpointsFactory.addMiddleware(verifyAuthMiddlewa
     handler: async ({ input: { id }, options, logger }) => {
         const { user } = options as AuthenticatedOptions;
 
-        const guild = await prisma.guild.findFirst({
-            where: { id },
-        });
+        const guild = await Guild.findOne({ id },
+        );
 
         if (!guild) {
             logger.silly(`'${user.id}' tried to GET /guild/'${id}' but it does not exist`);
             throw createHttpError(404, 'Guild not found');
         }
 
-        const owner = await prisma.user.findFirstOrThrow({
-            where: { id: guild.owner_id },
-        });
+        const owner = await User.findOne( { id: guild.owner },
+        );
+        if (!owner) {
+            logger.error(`'${user.id}' tried to GET /guild/'${id}' but the owner does not exist`);
+            throw createHttpError(500, 'Internal server error');
+        }
 
-        logger.silly(`Got guild '${guild.name}' for user '${user.username}'`);
+        logger.silly(`Got guild '${guild.name}' for user '${user.id}'`);
         return {
             id: guild.id,
             name: guild.name,
-            owner: {
-                id: owner.id,
-                username: owner.username,
-                discriminator: owner.discriminator,
-            },
+            owner_id: guild.owner,
         };
     },
 });
@@ -99,39 +92,38 @@ export const updateGuild = defaultEndpointsFactory.addMiddleware(verifyAuthMiddl
     handler: async ({ input: { id, name }, options, logger }) => {
         const { user } = options as AuthenticatedOptions;
 
-        const guild = await prisma.guild.findFirst({
-            where: { id },
-        });
+        const guild = await Guild.findOne({ id });
 
         if (!guild) {
             logger.silly(`'${user.id}' tried to PATCH /guild/'${id}' but it does not exist`);
             throw createHttpError(404, 'Guild not found');
         }
 
-        if (guild.owner_id !== user.id) {
+        if (guild.owner !== user.id) {
             logger.silly(`'${user.id}' tried to PATCH /guild/'${id}' but it is not their guild`);
             throw createHttpError(403, 'You are not the owner of this guild');
         }
 
-        const owner = await prisma.user.findFirstOrThrow({
-            where: { id: guild.owner_id },
-        });
+        const owner = await User.findOne({ id: guild.owner });
+        if (!owner) {
+            logger.error(`'${user.id}' tried to PATCH /guild/'${id}' but the owner does not exist`);
+            throw createHttpError(500, 'Internal server error');
+        }
 
-        const updatedGuild = await prisma.guild.update({
-            where: { id },
-            data: {
+        await Guild.updateOne({ id },
+            {
                 name: name !== undefined ? name : guild.name,
-            },
-        });
+            }
+        );
+        const updatedGuild = await Guild.findOne({ id });
+
+        logger.silly(`Updated guild '${guild.name}' for user '${user.id}'`);
+
 
         return {
-            id: updatedGuild.id,
-            name: updatedGuild.name,
-            owner: {
-                id: owner.id,
-                username: owner.username,
-                discriminator: owner.discriminator,
-            },
+            id: updatedGuild!.id,
+            name: updatedGuild!.name,
+            owner_id: owner.id,
         };
     },
 });
@@ -148,32 +140,23 @@ export const deleteGuild = defaultEndpointsFactory.addMiddleware(verifyAuthMiddl
     handler: async ({ input: { id }, options, logger }) => {
         const { user } = options as AuthenticatedOptions;
 
-        const guild = await prisma.guild.findFirst({
-            where: { id },
-        });
+        const guild = await Guild.findOne({ id });
 
         if (!guild) {
             logger.silly(`'${user.id}' tried to DELETE /guild/'${id}' but it does not exist`);
             throw createHttpError(404, 'Guild not found');
         }
-        if (guild.owner_id !== user.id) {
+        if (guild.owner !== user.id) {
             logger.silly(`'${user.id}' tried to DELETE /guild/'${id}' but it is not their guild`);
             throw createHttpError(403, 'You are not the owner of this guild');
         }
 
-        await prisma.guild.delete({
-            where: { id },
-        });
+        await Guild.deleteOne({ id });
 
         logger.silly(`Deleted guild '${guild.name}' for user '${user.username}'`);
         return {
             id: guild.id,
             name: guild.name,
-            owner: {
-                id: guild.owner_id,
-                username: user.username,
-                discriminator: user.discriminator,
-            },
-        };
-    },
+            owner_id: guild.owner,
+    };}
 });

@@ -1,14 +1,16 @@
-import { PrismaClient, User } from '@prisma/client';
 import { Snowflake } from '@sapphire/snowflake';
 import { createHttpError, createMiddleware, z } from 'express-zod-api';
 import jwt from 'jsonwebtoken';
+import mongoose from 'mongoose';
 import { createClient } from 'redis';
+import { User, UserSchema, UserType } from './models/user';
 
-const prisma = new PrismaClient();
-const tinyEpoch = new Date('2022-07-24T00:00:00.000Z');
-const snowflake = new Snowflake(tinyEpoch);
+export const tinyEpoch = new Date('2022-07-24T00:00:00.000Z');
+export const snowflake = new Snowflake(tinyEpoch);
 
-const verifyToken = async (token: string): Promise<{ user: User } | undefined> => {
+
+
+export const verifyToken = async (token: string): Promise<{ user: UserType } | undefined> => {
     let decoded;
     try {
         decoded = jwt.decode(token);
@@ -19,7 +21,7 @@ const verifyToken = async (token: string): Promise<{ user: User } | undefined> =
         return;
     }
 
-    const user = await prisma.user.findFirst({ where: { id: decoded.id } });
+    const user = await User.findOne({ id: decoded.id });
     if (!user) {
         return;
     }
@@ -32,7 +34,7 @@ const verifyToken = async (token: string): Promise<{ user: User } | undefined> =
     return { user };
 };
 
-const verifyAuthMiddleware = createMiddleware({
+export const verifyAuthMiddleware = createMiddleware({
     input: z.object({}),
     middleware: async ({ request, logger }) => {
         if (request.headers.authorization === undefined) {
@@ -49,22 +51,11 @@ const verifyAuthMiddleware = createMiddleware({
     },
 });
 
-interface AuthenticatedOptions {
-    user: User;
+export interface AuthenticatedOptions {
+    user: UserType;
 }
 
-const client = createClient();
-const producer = client.duplicate();
-const consumer = client.duplicate();
 
-export {
-    snowflake,
-    tinyEpoch,
-    verifyAuthMiddleware,
-    prisma,
-    AuthenticatedOptions,
-    verifyToken,
-    client,
-    producer,
-    consumer,
-};
+export const client = createClient();
+export const producer = client.duplicate();
+export const consumer = client.duplicate();

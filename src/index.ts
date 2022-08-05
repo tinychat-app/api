@@ -1,75 +1,22 @@
-import { DependsOnMethod, Routing, ServeStatic, createConfig, createServer } from 'express-zod-api';
+import { createConfig, createServer } from 'express-zod-api';
 import { OpenAPI } from 'express-zod-api';
 import { writeFileSync } from 'fs';
 import path from 'path';
+import { config, routing } from './server';
 
-import { client, consumer, prisma, producer, verifyToken } from './common';
-import { createGuild, deleteGuild, getGuild, updateGuild } from './routes/guild';
-import { createGuildChannel } from './routes/guild/channels';
-import {
-    createUserEndpoint as createUser,
-    deleteUserEndpoint as deleteUser,
-    getUserTokenEndpoint,
-    getUsersMe,
-    patchUsersMe as updateUsersMe,
-} from './routes/users';
+import { client, consumer, producer, verifyToken } from './common';
+import mongoose from 'mongoose';
 
-const config = createConfig({
-    server: {
-        listen: 3000,
-    },
-    cors: true,
-    logger: {
-        level: 'debug',
-        color: true,
-    },
-});
 
-const routing: Routing = {
-    v1: {
-        users: {
-            '@me': {
-                token: getUserTokenEndpoint,
-                '': new DependsOnMethod({
-                    get: getUsersMe,
-                    post: createUser,
-                    patch: updateUsersMe,
-                    delete: deleteUser,
-                }),
-            },
-        },
-        guilds: {
-            '': createGuild,
-            ':id': {
-                '': new DependsOnMethod({
-                    get: getGuild,
-                    patch: updateGuild,
-                    delete: deleteGuild,
-                }),
-                channels: new DependsOnMethod({
-                    post: createGuildChannel,
-                }),
-            },
-        },
-    },
-    docs: new ServeStatic(path.join(__dirname, '..', 'public')),
-};
 
-const jsonSpec = new OpenAPI({
-    routing,
-    config,
-    version: '0.1.0',
-    title: 'tinychat API',
-    serverUrl: 'http://localhost:3000',
-}).getSpecAsJson();
-writeFileSync(path.join(__dirname, '..', 'public/openapi.json'), jsonSpec, { flag: 'w' });
+
 
 const main = async () => {
-    await prisma.$connect();
 
     await client.connect();
     await producer.connect();
     await consumer.connect();
+    await mongoose.connect('mongodb://localhost:27017/dev', );
 
     await consumer.subscribe('rest', async (rawMessage) => {
         const message = JSON.parse(rawMessage);
@@ -97,7 +44,7 @@ const main = async () => {
 
     createServer(config, routing);
 
-    await prisma.$disconnect();
     await producer.disconnect();
+    await consumer.disconnect();
 };
 main();

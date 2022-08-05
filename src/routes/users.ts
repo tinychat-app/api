@@ -2,8 +2,8 @@ import argon2 from 'argon2';
 import { createHttpError, defaultEndpointsFactory, withMeta, z } from 'express-zod-api';
 import jwt from 'jsonwebtoken';
 
-import { AuthenticatedOptions, client, prisma, snowflake, verifyAuthMiddleware } from '../common';
-import { UserZod } from '../models';
+import { AuthenticatedOptions, client, snowflake, verifyAuthMiddleware } from '../common';
+import { PublicUserZod, User, UserZod } from '../models/user';
 
 export const createUserEndpoint = defaultEndpointsFactory.build({
     method: 'post',
@@ -19,16 +19,29 @@ export const createUserEndpoint = defaultEndpointsFactory.build({
         password: 'youshallnotpass',
         email: 'teaishealthy@protonmail.com',
     }),
-    output: UserZod,
+    output: withMeta(
+        z.object({
+            email: z.string().min(1),
+            username: z.string().min(1),
+            discriminator: z.string().min(1),
+            id: z.string().min(1),
+            
+        })
+    ).example({
+        username: 'teaishealthy',
+        email: 'teaishealthy@protonmail.com',
+        id: '915047329042434',
+        discriminator: '0001',
+    }),
     handler: async ({ input: { username, password, email }, logger }) => {
-        const exists = await prisma.user.findFirst({ where: { email } });
+        const exists = await User.exists({ email });
 
         if (exists) {
             logger.debug(`Rejecting POST /users/me because '${email}' is already in use`);
             throw createHttpError(400, 'Email already in use');
         }
 
-        const count = await prisma.user.count({ where: { username } });
+        const count = await User.count({ username });
         if (count + 1000 >= 9999) {
             logger.debug(`Rejecting POST /users/me because '${username}' is used too many times`);
             throw createHttpError(400, 'Username is used too many times');
@@ -37,7 +50,7 @@ export const createUserEndpoint = defaultEndpointsFactory.build({
 
         const hash = await argon2.hash(password, { type: argon2.argon2id });
         const id = snowflake.generate().toString();
-        await prisma.user.create({ data: { username, email, id, hash, discriminator } });
+        await User.create({ username, email, id, hash, discriminator } );
 
         logger.info(`Created user '${username}' with id '${id}'`);
         return { username, email, id, discriminator };
@@ -61,14 +74,19 @@ export const patchUsersMe = defaultEndpointsFactory.addMiddleware(verifyAuthMidd
     output: UserZod,
     handler: async ({ input: { username, password, email }, options }) => {
         const { user } = options as AuthenticatedOptions;
-        const updatedUser = await prisma.user.update({
-            where: { id: user.id },
-            data: {
+        await User.updateOne(
+            { id: user.id },
+            {
                 username: username !== undefined ? username : user.username,
                 email: email !== undefined ? email : user.email,
                 hash: password !== undefined ? await argon2.hash(password, { type: argon2.argon2id }) : user.hash,
-            },
-        });
+            }
+        );
+        const updatedUser = await User.findOne({ id: user.id });
+        if (!updatedUser) {
+            throw createHttpError(500, 'User not found');
+        }
+
         if (password !== undefined) {
             await client.publish(
                 'gateway',
@@ -113,7 +131,7 @@ export const deleteUserEndpoint = defaultEndpointsFactory.addMiddleware(verifyAu
     output: z.object({ message: z.string().optional() }),
     handler: async ({ options, logger }) => {
         const { user } = options as AuthenticatedOptions;
-        await prisma.user.delete({ where: { id: user.id } });
+        await User.deleteOne( { id: user.id });
         logger.info(`Deleted user '${user.username}' with id '${user.id}'`);
         if (user.username === 'ooliver1') {
             return { message: 'sucessfully forgor' };
@@ -142,7 +160,7 @@ export const getUserTokenEndpoint = defaultEndpointsFactory.build({
         token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjkxNTQyMTM1MTkwNzMyOCIsImlhdCI6MTY1ODgzOTA1NX0.Vu5MqJ_F_2rAHbcICvOGqxXoaqYiFYvRb9w0c7vHIlc',
     }),
     handler: async ({ input: { password, email }, logger }) => {
-        const user = await prisma.user.findFirst({ where: { email: email } });
+        const user = await User.findOne({ email: email });
         if (!user) {
             logger.debug(`Rejecting GET /users/me/token because '${email}' was not found`);
             throw createHttpError(401, 'Unauthorized');
