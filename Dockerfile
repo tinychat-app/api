@@ -3,5 +3,6 @@ WORKDIR /app
 COPY package.json  yarn.lock ./
 RUN yarn install
 COPY . .
-ENV DATABASE_URL="file:./db.sqlite"
+
+ENV NODE_ENV production
 CMD ["yarn", "start"]
