@@ -3,6 +3,7 @@ import { createHttpError, defaultEndpointsFactory, withMeta, z } from 'express-z
 import jwt from 'jsonwebtoken';
 
 import { AuthenticatedOptions, client, snowflake, verifyAuthMiddleware } from '../common';
+import { Guild } from '../models/guild';
 import { PublicUserZod, User, UserZod } from '../models/user';
 
 export const createUserEndpoint = defaultEndpointsFactory.build({
@@ -132,7 +133,8 @@ export const deleteUserEndpoint = defaultEndpointsFactory.addMiddleware(verifyAu
     handler: async ({ options, logger }) => {
         const { user } = options as AuthenticatedOptions;
         await User.deleteOne( { id: user.id });
-        logger.info(`Deleted user '${user.username}' with id '${user.id}'`);
+        const result = await Guild.deleteMany({ owner: user.id });
+        logger.info(`Deleted user '${user.username}${user.discriminator}' with id '${user.id}' had ${result.deletedCount} guilds`);
         if (user.username === 'ooliver1') {
             return { message: 'sucessfully forgor' };
         }
