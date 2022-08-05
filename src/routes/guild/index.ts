@@ -110,20 +110,15 @@ export const updateGuild = defaultEndpointsFactory.addMiddleware(verifyAuthMiddl
             logger.error(`'${user.id}' tried to PATCH /guild/'${id}' but the owner does not exist`);
             throw createHttpError(500, 'Internal server error');
         }
-
-        await Guild.updateOne({ id },
-            {
-                name: name !== undefined ? name : guild.name,
-            }
-        );
-        const updatedGuild = await Guild.findOne({ id });
+        guild.name = name || guild.name;
+        await guild.save();
 
         logger.silly(`Updated guild '${guild.name}' for user '${user.id}'`);
 
 
         return {
-            id: updatedGuild!.id,
-            name: updatedGuild!.name,
+            id: guild.id,
+            name: guild.name,
             owner_id: owner.id,
         };
     },
