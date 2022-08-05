@@ -8,12 +8,15 @@ import { client, consumer, producer, verifyToken } from './common';
 import mongoose from 'mongoose';
 
 
-
+let url = 'redis://localhost:6379'
+if (process.env.NODE_ENV === 'production') {
+    url = 'redis://keydb:6379'
+}
 
 
 const main = async () => {
 
-    await client.connect();
+    await client.connect({url});
     await producer.connect();
     await consumer.connect();
     await mongoose.connect('mongodb://localhost:27017/dev', );
