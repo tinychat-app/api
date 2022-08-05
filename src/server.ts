@@ -3,6 +3,7 @@ import { getUsersMe, createUserEndpoint, patchUsersMe, deleteUserEndpoint, getUs
 import { createGuild, deleteGuild, getGuild, updateGuild } from './routes/guild';
 import path from "path";
 import { writeFileSync } from "fs";
+import { createGuildChannel } from "./routes/guild/channels";
 
 
 export const config = createConfig({
@@ -39,9 +40,9 @@ export const routing: Routing = {
                     patch: updateGuild,
                     delete: deleteGuild,
                 }),
-                // channels: new DependsOnMethod({
-                //     post: createGuildChannel,
-                // }),
+                channels: new DependsOnMethod({
+                    post: createGuildChannel,
+                }),
             },
         },
     },

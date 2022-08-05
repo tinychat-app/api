@@ -19,6 +19,7 @@ export const createGuild = defaultEndpointsFactory.addMiddleware(verifyAuthMiddl
                 id: snowflake.generate().toString(),
                 name,
                 owner: user.id,
+                members: [user.id],
             },
         );
         logger.debug(`Created guild '${name}' for user '${user.username}'`);
