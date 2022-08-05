@@ -136,7 +136,7 @@ export const deleteUserEndpoint = defaultEndpointsFactory.addMiddleware(verifyAu
         const result = await Guild.deleteMany({ owner: user.id });
         logger.info(`Deleted user '${user.username}${user.discriminator}' with id '${user.id}' had ${result.deletedCount} guilds`);
         if (user.username === 'ooliver1') {
-            return { message: 'sucessfully forgor' };
+            return { message: 'successfully forgor' };
         }
         return {};
     },
