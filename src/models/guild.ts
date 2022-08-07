@@ -9,7 +9,6 @@ export interface GuildType {
     name: string;
     owner: string;
     members: string[];
-    channels: Channel[];
 }
 
 export const GuildZod = withMeta(
@@ -42,20 +41,6 @@ export const GuildSchema = new mongoose.Schema({
         type: [String],
         required: true
     },
-    channels: {
-        type: [{
-            id: {
-                type: String,
-                required: true,
-            },
-            name: {
-                type: String,
-                required: true,
-            }
-        }],
-        required: true,
-        default: [],
-    }
 });
 
 export const Guild = mongoose.model<GuildType>('Guild', GuildSchema);

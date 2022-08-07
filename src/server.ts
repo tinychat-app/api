@@ -1,10 +1,10 @@
-import { createConfig, DependsOnMethod, OpenAPI, Routing, ServeStatic } from "express-zod-api";
-import { getUsersMe, createUserEndpoint, patchUsersMe, deleteUserEndpoint, getUserTokenEndpoint } from "./routes/users";
-import { createGuild, deleteGuild, getGuild, updateGuild } from './routes/guild';
-import path from "path";
-import { writeFileSync } from "fs";
-import { createGuildChannel, getGuildChannels } from "./routes/guild/channels";
+import { DependsOnMethod, OpenAPI, Routing, ServeStatic, createConfig } from 'express-zod-api';
+import { writeFileSync } from 'fs';
+import path from 'path';
 
+import { createGuild, deleteGuild, getGuild, updateGuild } from './routes/guild';
+import { createGuildChannel, createInvite, getGuildChannels, useInvite } from './routes/guild/channels';
+import { createUserEndpoint, deleteUserEndpoint, getUserTokenEndpoint, getUsersMe, patchUsersMe } from './routes/users';
 
 export const config = createConfig({
     server: {
@@ -16,8 +16,6 @@ export const config = createConfig({
         color: true,
     },
 });
-
-
 
 export const routing: Routing = {
     v1: {
@@ -40,16 +38,23 @@ export const routing: Routing = {
                     patch: updateGuild,
                     delete: deleteGuild,
                 }),
-                channels: new DependsOnMethod({
-                    get: getGuildChannels,
-                    post: createGuildChannel,
-                }),
+                channels: {
+                    '': new DependsOnMethod({
+                        get: getGuildChannels,
+                        post: createGuildChannel,
+                    }),
+                    ':channelId': {
+                    invites: new DependsOnMethod({
+                        post: createInvite,
+                    }),
+                },
+                },
             },
+            'join': useInvite,
         },
     },
     docs: new ServeStatic(path.join(__dirname, '..', 'public')),
 };
-
 
 const jsonSpec = new OpenAPI({
     routing,

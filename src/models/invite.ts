@@ -1,26 +1,27 @@
 import mongoose from "mongoose";
 
-export interface Channel {
+export interface Invite {
     id: string;
-    name: string;   
-    guild_id: string;
+    channelId: string;
+    guildId: string;
 }
 
-export const ChannelSchema = new mongoose.Schema({
+
+export const InviteSchema = new mongoose.Schema({
     id: {
         type: String,
         required: true,
         unique: true,
     },
-    name: {
+    channelId: {
         type: String,
         required: true,
     },
-    guild_id: {
+    guildId: {
         type: String,
         required: true,
     },
 });
 
-export const Channel = mongoose.model<Channel>("Channel", ChannelSchema);
+export const Invite = mongoose.model<Invite>("Invite", InviteSchema);
 

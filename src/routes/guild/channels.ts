@@ -3,6 +3,7 @@ import { createHttpError, defaultEndpointsFactory, withMeta, z } from 'express-z
 import { AuthenticatedOptions, client, snowflake, verifyAuthMiddleware } from '../../common';
 import { Channel } from '../../models/channel';
 import { Guild, GuildZod } from '../../models/guild';
+import { Invite } from '../../models/invite';
 
 export const createGuildChannel = defaultEndpointsFactory.addMiddleware(verifyAuthMiddleware).build({
     method: 'post',
@@ -27,12 +28,13 @@ export const createGuildChannel = defaultEndpointsFactory.addMiddleware(verifyAu
             throw createHttpError(404, 'Guild not found');
         }
 
-        const channel: Channel = {
+        const channel = new Channel({
             id: snowflake.generate().toString(),
+            guild_id: id,
             name,
-        }
-        guild.channels.push(channel);
-        await guild.save();
+        });
+        await channel.save();
+
         client.publish(
             'gateway',
             JSON.stringify({
@@ -68,7 +70,88 @@ export const getGuildChannels = defaultEndpointsFactory.addMiddleware(verifyAuth
         if (!guild) {
             throw createHttpError(404, 'Guild not found');
         }
-
-        return {channels: guild.channels as {id: string, name: string}[]};
+        const channels = await Channel.find({
+            guild_id: id,
+        });
+        return { channels };
     }
 });
+
+export const createInvite = defaultEndpointsFactory.addMiddleware(verifyAuthMiddleware).build({
+    method: 'post',
+    description: 'Create a new invite',
+    input: withMeta(
+        z.object({
+            id: z.string().min(1),
+            channelId: z.string().min(1),
+        })
+    ).example({ id: '915047329042434', channelId: '915047329042434' }),
+    output: z.object({
+        id: z.string(),
+    }),
+    handler: async ({ input: { id, channelId }, options }) => {
+        const { user } = options as AuthenticatedOptions;
+        const channel = await Channel.findOne({
+            id: channelId,
+            guild_id: id,
+        });
+
+        if (!channel) {
+            throw createHttpError(404, 'Channel not found');
+        }
+
+        const invite = new Invite({
+            id: snowflake.generate().toString(),
+            channelId: channelId,
+            guildId: id,
+        })
+        await invite.save();
+
+        return { id: invite.id };
+    }
+})
+
+
+export const useInvite = defaultEndpointsFactory.addMiddleware(verifyAuthMiddleware).build({
+    method: 'post',
+    description: 'Use an invite',
+    input: withMeta(
+        z.object({
+            id: z.string().min(1),
+        })
+    ).example({ id: '915047329042434' }),
+    output: z.object({
+        id: z.string(),
+    }),
+    handler: async ({ input: { id }, options }) => {
+        const { user } = options as AuthenticatedOptions;
+        const invite = await Invite.findOne({
+            id: id,
+        });
+
+        if (!invite) {
+            throw createHttpError(404, 'Invite not found');
+        }
+
+        // Check if the user is already member in the guild
+        const guild = await Guild.findOne({
+            id: invite.guildId,
+            members: user.id,
+        });
+        if (guild) {
+            throw createHttpError(403, 'User is already member of the guild');
+        }
+
+
+        await Guild.findOneAndUpdate({
+            id: invite.guildId,
+        }, {
+            $push: {
+                members: user.id,
+            },
+        });
+ 
+
+        return { id: invite.id };
+    }
+})
