@@ -1,8 +1,8 @@
 import { withMeta } from 'express-zod-api';
 import mongoose from 'mongoose';
 import { z } from 'zod';
-import { Channel } from './channel';
 
+import { Channel } from './channel';
 
 export interface GuildType {
     id: string;
@@ -39,7 +39,7 @@ export const GuildSchema = new mongoose.Schema({
     },
     members: {
         type: [String],
-        required: true
+        required: true,
     },
 });
 

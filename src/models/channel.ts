@@ -1,8 +1,8 @@
-import mongoose from "mongoose";
+import mongoose from 'mongoose';
 
 export interface Channel {
     id: string;
-    name: string;   
+    name: string;
     guildId: string;
 }
 
@@ -22,5 +22,4 @@ export const ChannelSchema = new mongoose.Schema({
     },
 });
 
-export const Channel = mongoose.model<Channel>("Channel", ChannelSchema);
-
+export const Channel = mongoose.model<Channel>('Channel', ChannelSchema);

@@ -1,11 +1,10 @@
-import mongoose from "mongoose";
+import mongoose from 'mongoose';
 
 export interface Invite {
     id: string;
     channelId: string;
     guildId: string;
 }
-
 
 export const InviteSchema = new mongoose.Schema({
     id: {
@@ -23,5 +22,4 @@ export const InviteSchema = new mongoose.Schema({
     },
 });
 
-export const Invite = mongoose.model<Invite>("Invite", InviteSchema);
-
+export const Invite = mongoose.model<Invite>('Invite', InviteSchema);

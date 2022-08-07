@@ -26,7 +26,6 @@ export const createUserEndpoint = defaultEndpointsFactory.build({
             username: z.string().min(1),
             discriminator: z.string().min(1),
             id: z.string().min(1),
-            
         })
     ).example({
         username: 'teaishealthy',
@@ -51,7 +50,7 @@ export const createUserEndpoint = defaultEndpointsFactory.build({
 
         const hash = await argon2.hash(password, { type: argon2.argon2id });
         const id = snowflake.generate().toString();
-        await User.create({ username, email, id, hash, discriminator } );
+        await User.create({ username, email, id, hash, discriminator });
 
         logger.info(`Created user '${username}' with id '${id}'`);
         return { username, email, id, discriminator };
@@ -132,9 +131,11 @@ export const deleteUserEndpoint = defaultEndpointsFactory.addMiddleware(verifyAu
     output: z.object({ message: z.string().optional() }),
     handler: async ({ options, logger }) => {
         const { user } = options as AuthenticatedOptions;
-        await User.deleteOne( { id: user.id });
+        await User.deleteOne({ id: user.id });
         const result = await Guild.deleteMany({ owner: user.id });
-        logger.info(`Deleted user '${user.username}${user.discriminator}' with id '${user.id}' had ${result.deletedCount} guilds`);
+        logger.info(
+            `Deleted user '${user.username}${user.discriminator}' with id '${user.id}' had ${result.deletedCount} guilds`
+        );
         if (user.username === 'ooliver1') {
             return { message: 'successfully forgor' };
         }
