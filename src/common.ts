@@ -40,6 +40,13 @@ export const verifyToken = async (token: string): Promise<{ user: UserType } | u
 
 export const verifyAuthMiddleware = createMiddleware({
     input: z.object({}),
+    security: {
+        and: [{
+            type: 'bearer',
+        format: 'jwt',
+        }]
+    
+    },
     middleware: async ({ request, logger }) => {
         if (request.headers.authorization === undefined) {
             logger.debug(`Rejecting request because no authorization header was provided`);
