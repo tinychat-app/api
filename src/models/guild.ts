@@ -2,8 +2,6 @@ import { withMeta } from 'express-zod-api';
 import mongoose from 'mongoose';
 import { z } from 'zod';
 
-import { Channel } from './channel';
-
 export interface GuildType {
     id: string;
     name: string;

@@ -1,19 +1,14 @@
-import { createConfig, createServer } from 'express-zod-api';
-import { OpenAPI } from 'express-zod-api';
-import { writeFileSync } from 'fs';
-import path from 'path';
-import { config, routing } from './server';
-
-import { client, consumer, producer, verifyToken } from './common';
+import { createServer } from 'express-zod-api';
 import mongoose from 'mongoose';
 
+import { client, consumer, producer, verifyToken } from './common';
+import { config, routing } from './server';
 
 const main = async () => {
-
     await client.connect();
     await producer.connect();
     await consumer.connect();
-    await mongoose.connect('mongodb://localhost:27017/dev', );
+    await mongoose.connect('mongodb://localhost:27017/dev');
 
     await consumer.subscribe('rest', async (rawMessage) => {
         const message = JSON.parse(rawMessage);

@@ -4,7 +4,7 @@ import jwt from 'jsonwebtoken';
 
 import { AuthenticatedOptions, client, snowflake, verifyAuthMiddleware } from '../common';
 import { Guild } from '../models/guild';
-import { PublicUserZod, User, UserZod } from '../models/user';
+import { User, UserZod } from '../models/user';
 
 export const createUserEndpoint = defaultEndpointsFactory.build({
     method: 'post',

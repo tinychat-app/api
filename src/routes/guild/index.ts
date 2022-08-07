@@ -16,12 +16,11 @@ export const createGuild = defaultEndpointsFactory.addMiddleware(verifyAuthMiddl
     handler: async ({ input: { name }, options, logger }) => {
         const { user } = options as AuthenticatedOptions;
         const guild = await Guild.create({
-                id: snowflake.generate().toString(),
-                name,
-                owner: user.id,
-                members: [user.id],
-            },
-        );
+            id: snowflake.generate().toString(),
+            name,
+            owner: user.id,
+            members: [user.id],
+        });
         logger.debug(`Created guild '${name}' for user '${user.username}'`);
 
         await client.publish(
@@ -56,14 +55,12 @@ export const getGuild = defaultEndpointsFactory.addMiddleware(verifyAuthMiddlewa
     handler: async ({ input: { id }, options, logger }) => {
         const { user } = options as AuthenticatedOptions;
 
-        const guild = await Guild.findOne({ id },
-        );
+        const guild = await Guild.findOne({ id });
 
         if (!guild) {
             logger.silly(`'${user.id}' tried to GET /guild/'${id}' but it does not exist`);
             throw createHttpError(404, 'Guild not found');
         }
-
 
         logger.silly(`Got guild '${guild.name}' for user '${user.id}'`);
         return {
@@ -104,11 +101,10 @@ export const updateGuild = defaultEndpointsFactory.addMiddleware(verifyAuthMiddl
             logger.error(`'${user.id}' tried to PATCH /guild/'${id}' but the owner does not exist`);
             throw createHttpError(500, 'Internal server error');
         }
-        guild.name = name || guild.name;
+        guild.name = name === undefined ? guild.name : name;
         await guild.save();
 
         logger.silly(`Updated guild '${guild.name}' for user '${user.id}'`);
-
 
         return {
             id: guild.id,
@@ -148,5 +144,6 @@ export const deleteGuild = defaultEndpointsFactory.addMiddleware(verifyAuthMiddl
             id: guild.id,
             name: guild.name,
             ownerId: guild.owner,
-    };}
+        };
+    },
 });

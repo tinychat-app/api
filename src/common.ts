@@ -1,18 +1,17 @@
 import { Snowflake } from '@sapphire/snowflake';
 import { createHttpError, createMiddleware, z } from 'express-zod-api';
 import jwt from 'jsonwebtoken';
-import mongoose from 'mongoose';
 import { createClient } from 'redis';
-import { User, UserSchema, UserType } from './models/user';
+
+import { User, UserType } from './models/user';
 
 export const tinyEpoch = new Date('2022-07-24T00:00:00.000Z');
 export const snowflake = new Snowflake(tinyEpoch);
 
-let url = 'redis://localhost:6379'
+let url = 'redis://localhost:6379';
 if (process.env.NODE_ENV === 'production') {
-    url = 'redis://keydb:6379'
+    url = 'redis://keydb:6379';
 }
-
 
 export const verifyToken = async (token: string): Promise<{ user: UserType } | undefined> => {
     let decoded;
@@ -41,11 +40,12 @@ export const verifyToken = async (token: string): Promise<{ user: UserType } | u
 export const verifyAuthMiddleware = createMiddleware({
     input: z.object({}),
     security: {
-        and: [{
-            type: 'bearer',
-        format: 'jwt',
-        }]
-    
+        and: [
+            {
+                type: 'bearer',
+                format: 'jwt',
+            },
+        ],
     },
     middleware: async ({ request, logger }) => {
         if (request.headers.authorization === undefined) {
@@ -66,7 +66,6 @@ export interface AuthenticatedOptions {
     user: UserType;
 }
 
-
-export const client = createClient({url});
+export const client = createClient({ url });
 export const producer = client.duplicate();
 export const consumer = client.duplicate();
