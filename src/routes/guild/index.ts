@@ -39,7 +39,7 @@ export const createGuild = defaultEndpointsFactory.addMiddleware(verifyAuthMiddl
         return {
             id: guild.id,
             name: guild.name,
-            owner_id: guild.owner,
+            ownerId: guild.owner,
         };
     },
 });
@@ -69,7 +69,7 @@ export const getGuild = defaultEndpointsFactory.addMiddleware(verifyAuthMiddlewa
         return {
             id: guild.id,
             name: guild.name,
-            owner_id: guild.owner,
+            ownerId: guild.owner,
         };
     },
 });
@@ -113,7 +113,7 @@ export const updateGuild = defaultEndpointsFactory.addMiddleware(verifyAuthMiddl
         return {
             id: guild.id,
             name: guild.name,
-            owner_id: owner.id,
+            ownerId: owner.id,
         };
     },
 });
@@ -147,6 +147,6 @@ export const deleteGuild = defaultEndpointsFactory.addMiddleware(verifyAuthMiddl
         return {
             id: guild.id,
             name: guild.name,
-            owner_id: guild.owner,
+            ownerId: guild.owner,
     };}
 });

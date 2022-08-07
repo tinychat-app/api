@@ -30,7 +30,7 @@ export const createGuildChannel = defaultEndpointsFactory.addMiddleware(verifyAu
 
         const channel = new Channel({
             id: snowflake.generate().toString(),
-            guild_id: id,
+            guildId: id,
             name,
         });
         await channel.save();
@@ -71,7 +71,7 @@ export const getGuildChannels = defaultEndpointsFactory.addMiddleware(verifyAuth
             throw createHttpError(404, 'Guild not found');
         }
         const channels = await Channel.find({
-            guild_id: id,
+            guildId: id,
         });
         return { channels };
     }
@@ -93,7 +93,7 @@ export const createInvite = defaultEndpointsFactory.addMiddleware(verifyAuthMidd
         const { user } = options as AuthenticatedOptions;
         const channel = await Channel.findOne({
             id: channelId,
-            guild_id: id,
+            guildId: id,
         });
 
         if (!channel) {

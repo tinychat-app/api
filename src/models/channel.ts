@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 export interface Channel {
     id: string;
     name: string;   
-    guild_id: string;
+    guildId: string;
 }
 
 export const ChannelSchema = new mongoose.Schema({
@@ -16,7 +16,7 @@ export const ChannelSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
-    guild_id: {
+    guildId: {
         type: String,
         required: true,
     },

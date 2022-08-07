@@ -15,12 +15,12 @@ export const GuildZod = withMeta(
     z.object({
         id: z.string().min(1),
         name: z.string().min(1).max(32),
-        owner_id: z.string().min(1), // TODO: Id or PublicUserZod?
+        ownerId: z.string().min(1), // TODO: Id or PublicUserZod?
     })
 ).example({
     id: '915047329042434',
     name: 'My guild',
-    owner_id: '914997903364096',
+    ownerId: '914997903364096',
 });
 
 export const GuildSchema = new mongoose.Schema({
