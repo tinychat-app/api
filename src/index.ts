@@ -8,7 +8,13 @@ const main = async () => {
     await client.connect();
     await producer.connect();
     await consumer.connect();
-    await mongoose.connect('mongodb://localhost:27017/dev');
+
+    if (process.env.NODE_ENV === 'production') {
+        await mongoose.connect('mongodb://mongo:27017/dev');
+    } else {
+        await mongoose.connect('mongodb://localhost:27017/dev');
+    }
+    
 
     await consumer.subscribe('rest', async (rawMessage) => {
         const message = JSON.parse(rawMessage);
